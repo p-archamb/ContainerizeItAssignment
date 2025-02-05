@@ -1,0 +1,58 @@
+version: '3.8'  
+
+services:
+  frontend:
+    build:
+      # Points to the frontend source code location relative to this docker-compose file
+      context: ../crud-react-node-mySQL-go/frontend
+      # Location of the frontend Dockerfile, relative to the source code location
+      dockerfile: ../../containerizeitassignment/frontend/Dockerfile
+    ports:
+      - "5173:5173"  # Maps port 5173 on my computer to port 5173 in the container (Vite's default port)
+    command: npm run dev -- --host 0.0.0.0  # Runs the development server and makes it accessible outside the container
+    volumes:
+      # Creates a live link between the local frontend code and the container(changes in code will automatically be updated in container)
+      - ../crud-react-node-mySQL-go/frontend:/app
+      # Prevents node_modules in the container from being overwritten by local files
+      - /app/node_modules
+    depends_on:
+      - backend  # Ensures the frontend starts after the backend service
+
+  backend:
+    build:
+      # Points to the backend source code location
+      context: ../crud-react-node-mySQL-go/backend
+      dockerfile: ../../containerizeitassignment/backend/Dockerfile
+    ports:
+      - "8800:8800"  # Maps port 8800 on computer to port 8800 in the container
+    volumes:
+      - /app/node_modules  # Preserves the node_modules folder.
+    depends_on:
+      db:
+        condition: service_healthy  # Waits for the database to be fully ready before starting
+
+  db:
+    platform: linux/arm64  # M1/M2 Mac compatibility
+    image: mysql:8.0  # Uses MySQL version 8.0 from Docker Hub
+    restart: always  # Automatically restarts the container if it crashes
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes  # Allows root user to connect without password
+      - MYSQL_DATABASE=test  # Creates a database named 'test' on startup
+    ports:
+      - "3306:3306"  # Maps MySQL's default port to computer
+    volumes:
+      # Maps the custom MySQL configuration file into the container
+      - ./my.cnf:/etc/mysql/conf.d/my.cnf
+      # Persists database data even when container is removed
+      - mysql-data:/var/lib/mysql
+      # Runs the database initialization script on first startup
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      # Regularly checks if MySQL is responding to ensure it's truly ready
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+# Named volumes definition
+volumes:
+  mysql-data:  # Defines a persistent volume for MySQL data that survives container restarts
