@@ -7,10 +7,12 @@ cd your-workspace
 Clone the main application repository first:
 
 git clone https://github.com/lama-dev/crud-react-node-mySQL-go.git
+
 3. Clone the Containerization Repository
 Next, clone this repository which contains the Docker configuration. It needs to be at the same level as the first repository:
 
 git clone https://github.com/your-username/containerizeitassignment.git
+
 4. Start the Application
 Navigate to the containerization repository and start the Docker containers:
 
